@@ -81,8 +81,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     // Example: context.go('/auth') or Navigator.pushReplacementNamed(...)
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (_, __, ___) => const _AuthPlaceholder(),
-        transitionsBuilder: (_, animation, __, child) {
+        pageBuilder: (_, _, _) => const _AuthPlaceholder(),
+        transitionsBuilder: (_, animation, _, child) {
           return FadeTransition(opacity: animation, child: child);
         },
         transitionDuration: const Duration(milliseconds: 400),
@@ -231,10 +231,10 @@ class _OnboardingPage extends StatelessWidget {
             width: 96,
             height: 96,
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.12),
+              color: AppColors.primary.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(28),
               border: Border.all(
-                color: AppColors.primary.withOpacity(0.25),
+                color: AppColors.primary.withValues(alpha: 0.25),
                 width: 1.5,
               ),
             ),

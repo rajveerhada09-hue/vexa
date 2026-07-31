@@ -237,10 +237,10 @@ abstract final class AppTheme {
         ).copyWith(
           overlayColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.pressed)) {
-              return AppColors.primaryPressed.withOpacity(0.2);
+              return AppColors.primaryPressed.withValues(alpha: 0.2);
             }
             if (states.contains(WidgetState.hovered)) {
-              return AppColors.primaryHover.withOpacity(0.12);
+              return AppColors.primaryHover.withValues(alpha: 0.12);
             }
             return null;
           }),
@@ -321,7 +321,7 @@ abstract final class AppTheme {
           foregroundColor: AppColors.iconSecondary,
           disabledForegroundColor: AppColors.textDisabled,
           hoverColor: AppColors.glassHighlight,
-          highlightColor: AppColors.primary.withOpacity(0.12),
+          highlightColor: AppColors.primary.withValues(alpha: 0.12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),
@@ -390,7 +390,7 @@ abstract final class AppTheme {
         backgroundColor: AppColors.navBarBackground,
         elevation: 0,
         height: 72,
-        indicatorColor: AppColors.primary.withOpacity(0.15),
+        indicatorColor: AppColors.primary.withValues(alpha: 0.15),
         indicatorShape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
@@ -510,8 +510,8 @@ abstract final class AppTheme {
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.surfaceElevated,
         disabledColor: AppColors.surface,
-        selectedColor: AppColors.primary.withOpacity(0.2),
-        secondarySelectedColor: AppColors.primary.withOpacity(0.2),
+        selectedColor: AppColors.primary.withValues(alpha: 0.2),
+        secondarySelectedColor: AppColors.primary.withValues(alpha: 0.2),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         labelStyle: const TextStyle(
           fontFamily: _fontFamily,

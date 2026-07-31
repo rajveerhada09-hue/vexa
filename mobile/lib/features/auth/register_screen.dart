@@ -273,7 +273,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
-                        value: _selectedBusinessType,
+                        initialValue: _selectedBusinessType,
                         decoration: const InputDecoration(
                           hintText: 'Select business type',
                           prefixIcon: Icon(

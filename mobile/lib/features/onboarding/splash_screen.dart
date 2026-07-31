@@ -77,8 +77,8 @@ class _SplashScreenState extends State<SplashScreen>
         // Temporary placeholder until routes are wired:
         Navigator.of(context).pushReplacement(
           PageRouteBuilder(
-            pageBuilder: (_, __, ___) => const _OnboardingPlaceholder(),
-            transitionsBuilder: (_, animation, __, child) {
+            pageBuilder: (_, _, _) => const _OnboardingPlaceholder(),
+            transitionsBuilder: (_, animation, _, child) {
               return FadeTransition(opacity: animation, child: child);
             },
             transitionDuration: const Duration(milliseconds: 400),
@@ -153,10 +153,10 @@ class _VexaLogo extends StatelessWidget {
           width: 56,
           height: 56,
           decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.15),
+            color: AppColors.primary.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: AppColors.primary.withOpacity(0.35),
+              color: AppColors.primary.withValues(alpha: 0.35),
               width: 1.5,
             ),
           ),
