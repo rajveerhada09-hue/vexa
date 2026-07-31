@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+env/
+
+# VS Code
+.vscode/
+
+# Logs
+*.log
+
+# Environment
+.env
+
+# Flutter
+mobile/build/
+mobile/.dart_tool/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
