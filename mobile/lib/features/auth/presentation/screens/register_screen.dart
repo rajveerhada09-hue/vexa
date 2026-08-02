@@ -1,10 +1,12 @@
 // lib/features/auth/register_screen.dart
-
+import 'package:mobile/services/auth/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-import '../../core/theme/app_colors.dart';
-import '../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/phone_number_field.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/app_text_field.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -15,16 +17,19 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
-
+  final AuthService _authService = AuthServiceImpl();
   final _fullNameController = TextEditingController();
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _businessNameController = TextEditingController();
+  final _phoneController = TextEditingController();
 
   String? _selectedBusinessType;
   bool _obscurePassword = true;
   bool _isLoading = false;
+  
+
 
   static const List<String> _businessTypes = [
     'Restaurant / Cafe',
@@ -35,9 +40,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
     'Professional Services',
     'Agency / Consulting',
     'E-commerce',
+    'Education / Training',
+    'Fitness / Gym',
+    'Entertainment / Events',
+    'Hospitality / Travel',
+    'Interior Design / Architecture',
+    'Automotive / Car Dealership',
+    'Coaching / Personal Development',
+    'Non-profit / Charity',
     'Other',
+
   ];
 
+  
   @override
   void initState() {
     super.initState();
@@ -58,38 +73,114 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _businessNameController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
   Future<void> _onCreateAccount() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_selectedBusinessType == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a business type')),
-      );
-      return;
-    }
+  if (!_formKey.currentState!.validate()) return;
 
+
+
+if (_selectedBusinessType == null) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text('Please select a business type'),
+    ),
+  );
+  return;
+}
+
+  try {
     setState(() => _isLoading = true);
 
-    // TODO: Call your auth service here
-    await Future.delayed(const Duration(milliseconds: 1200));
+    await _authService.registerWithEmail(
+      name: _fullNameController.text.trim(),
+      email: _emailController.text.trim(),
+      password: _passwordController.text.trim(),
+    );
 
     if (!mounted) return;
+
     setState(() => _isLoading = false);
 
-    // Navigate to next screen (dashboard / verify email etc.)
-    // Navigator.of(context).pushReplacementNamed('/dashboard');
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Account Created Successfully"),
+      ),
+    );
+
+    // TODO:
+    // Navigator.pushReplacement(...)
+  } on FirebaseAuthException catch (e) {
+  if (!mounted) return;
+
+  setState(() => _isLoading = false);
+
+  String message;
+
+  switch (e.code) {
+    case 'email-already-in-use':
+      message = 'This email is already registered.';
+      break;
+
+    case 'invalid-email':
+      message = 'Please enter a valid email.';
+      break;
+
+    case 'weak-password':
+      message = 'Password must be at least 6 characters.';
+      break;
+
+    case 'network-request-failed':
+      message = 'No internet connection.';
+      break;
+
+    case 'too-many-requests':
+      message = 'Too many attempts. Please try again later.';
+      break;
+
+    default:
+      message = e.message ?? 'Account creation failed.';
   }
 
-  void _onGoogleSignUp() {
-    // TODO: Implement Google Sign-In
-  }
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(message)),
+  );
+}
+}
+
+  Future<void> _onGoogleSignUp() async {
+  try {
+    setState(() => _isLoading = true);
+
+    await _authService.signInWithGoogle();
+
+    if (!mounted) return;
+
+    setState(() => _isLoading = false);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Google Sign Up Successful"),
+      ),
+    );
+  } on FirebaseAuthException catch (e) {
+  if (!mounted) return;
+
+  setState(() => _isLoading = false);
+
+  final message = e.message ?? 'Google Sign-In failed.';
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(message)),
+  );
+}
+}
 
   void _goToLogin() {
-    // Navigator.of(context).pushReplacementNamed('/login');
-    // or context.go('/login');
-  }
+  Navigator.pop(context);
+}
 
   @override
   Widget build(BuildContext context) {
@@ -260,6 +351,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
 
                       const SizedBox(height: 20),
+
+                  PhoneNumberField(
+                    controller: _phoneController,
+                    initialCountryCode: 'IN',
+                  ),
 
                       // Business Type
                       const Text(

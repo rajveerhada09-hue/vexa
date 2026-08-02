@@ -37,6 +37,9 @@ dependencies:
   google_fonts: ^6.3.0
   flutter_svg: ^2.2.1
 
+  intl_phone_field: ^3.2.0
+  country_picker: ^2.0.27
+  
   dio: ^5.9.0
   shared_preferences: ^2.5.3
 

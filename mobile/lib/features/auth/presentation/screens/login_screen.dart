@@ -1,10 +1,11 @@
 // lib/features/auth/login_screen.dart
-
+import 'package:mobile/services/auth/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
-import '../../core/theme/app_colors.dart';
-import '../../core/widgets/app_text_field.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/app_text_field.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,7 +16,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-
+  final AuthService _authService = AuthServiceImpl();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
@@ -43,31 +44,108 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _onLogin() async {
-    if (!_formKey.currentState!.validate()) return;
+  if (!_formKey.currentState!.validate()) return;
 
+  try {
     setState(() => _isLoading = true);
 
-    // TODO: Call your auth service here
-    await Future.delayed(const Duration(milliseconds: 1200));
+    await _authService.signInWithEmail(
+      email: _emailController.text.trim(),
+      password: _passwordController.text.trim(),
+    );
 
     if (!mounted) return;
+
     setState(() => _isLoading = false);
 
-    // Navigate to dashboard
-    // Navigator.of(context).pushReplacementNamed('/dashboard');
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Login Successful"),
+      ),
+    );
+
+    // TODO:
+    // Navigator.pushReplacement(...)
+  } on FirebaseAuthException catch (e) {
+  String message;
+
+  switch (e.code) {
+    case 'invalid-credential':
+    case 'wrong-password':
+      message = 'Incorrect email or password.';
+      break;
+
+    case 'user-not-found':
+      message = 'No account found with this email.';
+      break;
+
+    case 'invalid-email':
+      message = 'Please enter a valid email.';
+      break;
+
+    case 'too-many-requests':
+      message = 'Too many attempts. Please try again later.';
+      break;
+
+    case 'network-request-failed':
+      message = 'No internet connection.';
+      break;
+
+    default:
+      message = e.message ?? 'Login failed.';
   }
 
-  void _onGoogleLogin() {
-    // TODO: Implement Google Sign-In
+  if (!mounted) return;
+
+  setState(() => _isLoading = false);
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(message)),
+  );
+}
+}
+
+  Future<void> _onGoogleLogin() async {
+    debugPrint("Google button pressed");
+  try {
+    setState(() => _isLoading = true);
+    await _authService.signInWithGoogle();
+
+    if (!mounted) return;
+
+    setState(() => _isLoading = false);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Google Sign-In Successful"),
+      ),
+    );
+
+    // TODO:
+    // Navigator.pushReplacement(...)
+  } catch (e) {
+    if (!mounted) return;
+
+    setState(() => _isLoading = false);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(e.toString())),
+    );
   }
+}
 
   void _onForgotPassword() {
     // Navigator.of(context).pushNamed('/forgot-password');
   }
 
-  void _goToRegister() {
-    // Navigator.of(context).pushReplacementNamed('/register');
-  }
+void _goToRegister() {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => const RegisterScreen(),
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
