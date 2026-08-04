@@ -40,7 +40,7 @@ class DashboardCard extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withOpacity(0.06)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
           ),
           child: Row(
             children: [
@@ -49,7 +49,7 @@ class DashboardCard extends StatelessWidget {
                 height: 44,
                 width: 44,
                 decoration: BoxDecoration(
-                  color: leadingIconColor.withOpacity(0.12),
+                  color: leadingIconColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(13),
                 ),
                 child: Icon(leadingIcon, color: leadingIconColor, size: 20),
@@ -76,7 +76,7 @@ class DashboardCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.5),
+                        color: Colors.white.withValues(alpha: 0.5),
                         fontSize: 12.5,
                       ),
                     ),
@@ -91,7 +91,7 @@ class DashboardCard extends StatelessWidget {
                   Text(
                     trailingLabel,
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.6),
+                      color: Colors.white.withValues(alpha: 0.6),
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -105,7 +105,7 @@ class DashboardCard extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: (statusColor ?? const Color(0xFF4ADE80))
-                            .withOpacity(0.12),
+                            .withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(

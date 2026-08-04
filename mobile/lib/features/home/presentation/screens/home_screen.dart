@@ -114,7 +114,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Text(
                         'Rajveer Motors',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.6),
+                          color: Colors.white.withValues(alpha: 0.6),
                           fontSize: 13.5,
                           fontWeight: FontWeight.w500,
                         ),
@@ -124,7 +124,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         height: 3,
                         width: 3,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.3),
+                          color: Colors.white.withValues(alpha: 0.3),
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -132,7 +132,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Text(
                         'Automotive Services',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.6),
+                          color: Colors.white.withValues(alpha: 0.6),
                           fontSize: 13.5,
                           fontWeight: FontWeight.w500,
                         ),
@@ -153,7 +153,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                border: Border.all(color: Colors.white.withOpacity(0.1)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
               ),
               child: const Center(
                 child: Text(
@@ -303,7 +303,7 @@ class _HomeScreenState extends State<HomeScreen> {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: _recentCalls.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 10),
+          separatorBuilder: (_, _) => const SizedBox(height: 10),
           itemBuilder: (context, index) {
             final call = _recentCalls[index];
             return DashboardCard(
@@ -328,7 +328,7 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFF0F1015),
         border: Border(
-          top: BorderSide(color: Colors.white.withOpacity(0.06)),
+          top: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
         ),
       ),
       child: SafeArea(
@@ -339,7 +339,7 @@ class _HomeScreenState extends State<HomeScreen> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           selectedItemColor: const Color(0xFF7C8CFF),
-          unselectedItemColor: Colors.white.withOpacity(0.4),
+          unselectedItemColor: Colors.white.withValues(alpha: 0.4),
           selectedLabelStyle: const TextStyle(
             fontSize: 11.5,
             fontWeight: FontWeight.w600,
