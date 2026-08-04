@@ -95,10 +95,14 @@ if (_selectedBusinessType == null) {
     setState(() => _isLoading = true);
 
     await _authService.registerWithEmail(
-      name: _fullNameController.text.trim(),
-      email: _emailController.text.trim(),
-      password: _passwordController.text.trim(),
-    );
+  fullName: _fullNameController.text.trim(),
+  username: _usernameController.text.trim(),
+  email: _emailController.text.trim(),
+  password: _passwordController.text.trim(),
+  phone: _phoneController.text.trim(),
+  businessName: _businessNameController.text.trim(),
+  businessType: _selectedBusinessType!,
+);
 
     if (!mounted) return;
 

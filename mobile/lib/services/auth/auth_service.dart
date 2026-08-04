@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
 abstract class AuthService {
   Future<void> signInWithEmail({
     required String email,
@@ -8,19 +8,22 @@ abstract class AuthService {
   });
 
   Future<void> registerWithEmail({
-    required String name,
-    required String email,
-    required String password,
-  });
+  required String fullName,
+  required String username,
+  required String email,
+  required String password,
+  required String phone,
+  required String businessName,
+  required String businessType,
+});
 
   Future<void> signInWithGoogle();
 }
 
-/// Temporary concrete implementation so UI compiles.
-/// Replace with real FirebaseAuth + GoogleSignIn later.
 class AuthServiceImpl implements AuthService {
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
 
 
@@ -37,16 +40,38 @@ class AuthServiceImpl implements AuthService {
 
   @override
   Future<void> registerWithEmail({
-    required String name,
-    required String email,
-    required String password,
-  }) async {
-    await _auth.createUserWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
+  required String fullName,
+  required String username,
+  required String email,
+  required String password,
+  required String phone,
+  required String businessName,
+  required String businessType,
+}) async {
+    final credential = await _auth.createUserWithEmailAndPassword(
+  email: email,
+  password: password,
+);
 
-    await _auth.currentUser?.updateDisplayName(name);
+final user = credential.user;
+
+if (user == null) {
+  throw Exception("User creation failed");
+}
+
+await user.updateDisplayName(fullName);
+
+
+await _firestore.collection('users').doc(user.uid).set({
+  'uid': user.uid,
+  'fullName': fullName,
+  'username': username,
+  'email': email,
+  'phone': phone,
+  'businessName': businessName,
+  'businessType': businessType,
+  'createdAt': FieldValue.serverTimestamp(),
+});
   }
 
   @override
