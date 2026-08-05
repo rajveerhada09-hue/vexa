@@ -24,7 +24,7 @@ class AnalyticsTile extends StatelessWidget {
     this.isPositiveTrend = true,
   });
 
-  @override
+  @override 
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
