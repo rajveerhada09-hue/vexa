@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 
+import '../../../user/providers/user_provider.dart';
 import '../widgets/analytics_tile.dart';
 import '../widgets/dashboard_card.dart';
 import '../widgets/quick_action_button.dart';
@@ -88,90 +91,104 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Top app bar with greeting, business info and profile avatar.
   Widget _buildAppBar(BuildContext context) {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Greeting + business info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Hello, Rajveer 👋',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Text(
-                        'Rajveer Motors',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.6),
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Container(
-                        height: 3,
-                        width: 3,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.3),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Automotive Services',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.6),
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            // Profile avatar
-            Container(
-              height: 46,
-              width: 46,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF7C8CFF), Color(0xFF5B6EF5)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-              ),
-              child: const Center(
-                child: Text(
-                  'R',
-                  style: TextStyle(
+  final user = context.watch<UserProvider>().currentUser;
+
+  return SliverToBoxAdapter(
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Hello, ${user?.fullName ?? "User"} 👋',
+                  style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 18,
+                    fontSize: 20,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-              ),
+                const SizedBox(height: 4),
+                Text(
+                  user?.businessName ?? 'No Business',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.6),
+                    fontSize: 13.5,
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
+
+          Row(
+  children: [
+    Container(
+      height: 46,
+      width: 46,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        color: Color(0xFF5B6EF5),
+      ),
+      child: Center(
+        child: Text(
+          (user?.fullName.isNotEmpty ?? false)
+              ? user!.fullName[0].toUpperCase()
+              : "U",
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
-    );
-  }
+    ),
 
+    const SizedBox(width: 8),
+
+    IconButton(
+      icon: const Icon(
+        Icons.logout,
+        color: Colors.white,
+      ),
+      tooltip: "Logout",
+      onPressed: () async {
+        final shouldLogout = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) {
+            return AlertDialog(
+              title: const Text("Logout"),
+              content: const Text("Are you sure you want to logout?"),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: const Text("Cancel"),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(dialogContext, true),
+                  child: const Text("Logout"),
+                ),
+              ],
+            );
+          },
+        );
+
+        if (shouldLogout != true) return;
+
+        await FirebaseAuth.instance.signOut();
+
+        if (!mounted) return;
+
+        context.read<UserProvider>().clearUserData();
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
+  }
   /// "Quick Actions" row: AI Calls, Customers, Analytics, Settings.
   Widget _buildQuickActionsSection() {
     return Column(

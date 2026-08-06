@@ -1,12 +1,15 @@
 // lib/features/auth/login_screen.dart
 import 'package:mobile/services/auth/auth_service.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import 'register_screen.dart';
-
+import '../../../user/providers/user_provider.dart';
+import '../../../ai/presentation/screens/home_screen.dart';
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -50,22 +53,24 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     await _authService.signInWithEmail(
-      email: _emailController.text.trim(),
-      password: _passwordController.text.trim(),
-    );
+  email: _emailController.text.trim(),
+  password: _passwordController.text.trim(),
+);
 
-    if (!mounted) return;
+if (!mounted) return;
 
-    setState(() => _isLoading = false);
+await context.read<UserProvider>().loadCurrentUser();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Login Successful"),
-      ),
-    );
+if (!mounted) return;
 
-    // TODO:
-    // Navigator.pushReplacement(...)
+setState(() => _isLoading = false);
+
+Navigator.pushReplacement(
+  context,
+  MaterialPageRoute(
+    builder: (_) => const HomeScreen(),
+  ),
+);
   } on FirebaseAuthException catch (e) {
   String message;
 
@@ -106,23 +111,25 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
   Future<void> _onGoogleLogin() async {
-    debugPrint("Google button pressed");
   try {
     setState(() => _isLoading = true);
+
     await _authService.signInWithGoogle();
+
+    if (!mounted) return;
+
+    await context.read<UserProvider>().loadCurrentUser();
 
     if (!mounted) return;
 
     setState(() => _isLoading = false);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Google Sign-In Successful"),
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const HomeScreen(),
       ),
     );
-
-    // TODO:
-    // Navigator.pushReplacement(...)
   } catch (e) {
     if (!mounted) return;
 
