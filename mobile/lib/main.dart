@@ -7,6 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 import 'features/user/providers/user_provider.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
+import 'features/dashboard/provider/dashboard_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,10 +26,14 @@ class VexaApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider<UserProvider>(
-          create: (_) => UserProvider(),
-        ),
-      ],
+      ChangeNotifierProvider(
+        create: (_) => UserProvider(),
+      ),
+
+      ChangeNotifierProvider(
+        create: (_) => DashboardProvider(),
+  ),
+],
       child: MaterialApp(
         title: 'Vexa',
         debugShowCheckedModeBanner: false,

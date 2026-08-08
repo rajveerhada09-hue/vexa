@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 /// A reusable section header used throughout the Home Dashboard.
 ///
 /// Displays a bold title with optional trailing action text (e.g. "See all").

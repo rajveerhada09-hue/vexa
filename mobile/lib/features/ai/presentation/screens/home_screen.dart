@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 
+import '../../../dashboard/provider/dashboard_provider.dart';
 import '../../../user/providers/user_provider.dart';
 import '../widgets/analytics_tile.dart';
 import '../widgets/dashboard_card.dart';
@@ -21,10 +22,21 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Bottom navigation selected index — local UI state only.
-  int _selectedNavIndex = 0;
 
-  // Static placeholder data for the "Recent Calls" list.
+int _selectedNavIndex = 0;
+
+@override
+void initState() {
+  super.initState();
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (!mounted) return;
+
+    context.read<UserProvider>().loadCurrentUser();
+    context.read<DashboardProvider>().loadDashboard();
+  });
+}
+// Static placeholder data for the "Recent Calls" list.
   final List<_RecentCallData> _recentCalls = const [
     _RecentCallData(
       title: 'Aarav Mehta',
@@ -175,11 +187,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
         if (shouldLogout != true) return;
 
-        await FirebaseAuth.instance.signOut();
-
         if (!mounted) return;
 
-        context.read<UserProvider>().clearUserData();
+        await FirebaseAuth.instance.signOut();
+
+        if (!context.mounted) return;
+
+        Provider.of<UserProvider>(context, listen: false).clearUserData();
+        Provider.of<DashboardProvider>(context, listen: false).clearDashboard();
                 },
               ),
             ],
@@ -241,6 +256,8 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Uses a responsive 2-column grid via LayoutBuilder so tile sizing
   /// adapts cleanly across phone widths.
   Widget _buildAnalyticsSection(BuildContext context) {
+    final dashboard = context.watch<DashboardProvider>().dashboard;
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -255,46 +272,51 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 SizedBox(
                   width: tileWidth,
-                  child: const AnalyticsTile(
+                  child: AnalyticsTile(
                     label: "Today's Calls",
-                    value: '38',
+                    value: '${dashboard?.todayCalls ?? 0}',
                     icon: Icons.phone_in_talk_rounded,
                     accentColor: Color(0xFF7C8CFF),
-                    trend: '+12%',
-                    isPositiveTrend: true,
+                    trend: dashboard?.todayCallsTrend ?? '0%',
+                    isPositiveTrend:
+                        !(dashboard?.todayCallsTrend.startsWith('-') ?? false),
                   ),
                 ),
                 SizedBox(
                   width: tileWidth,
-                  child: const AnalyticsTile(
+                  child:  AnalyticsTile(
                     label: 'Appointments',
-                    value: '14',
+                    value: '${dashboard?.appointments ?? 0}',
                     icon: Icons.event_available_rounded,
                     accentColor: Color(0xFF4ADE80),
-                    trend: '+5%',
-                    isPositiveTrend: true,
+                    trend: dashboard?.appointmentsTrend ?? '0%',
+                    isPositiveTrend:
+                        !(dashboard?.appointmentsTrend.startsWith('-') ?? false),
                   ),
                 ),
                 SizedBox(
                   width: tileWidth,
-                  child: const AnalyticsTile(
+                  child:  AnalyticsTile(
                     label: 'Revenue',
-                    value: '₹42,300',
+                    value: '₹${dashboard?.revenue ?? 0}',
                     icon: Icons.currency_rupee_rounded,
                     accentColor: Color(0xFFFBBF24),
-                    trend: '+8%',
-                    isPositiveTrend: true,
+                    trend: dashboard?.revenueTrend ?? '0%',
+                    isPositiveTrend:
+                        !(dashboard?.revenueTrend.startsWith('-') ?? false),
+               
                   ),
                 ),
                 SizedBox(
                   width: tileWidth,
-                  child: const AnalyticsTile(
+                  child: AnalyticsTile(
                     label: 'AI Accuracy',
-                    value: '96.4%',
+                    value: '${dashboard?.aiAccuracy ?? 0}%',
                     icon: Icons.psychology_rounded,
                     accentColor: Color(0xFFA78BFA),
-                    trend: '-0.3%',
-                    isPositiveTrend: false,
+                    trend: dashboard?.aiAccuracyTrend ?? '0%',
+                    isPositiveTrend:
+                        !(dashboard?.aiAccuracyTrend.startsWith('-') ?? false),
                   ),
                 ),
               ],
