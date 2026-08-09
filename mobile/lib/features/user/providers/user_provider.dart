@@ -99,6 +99,63 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
+  /// Saves business info on onboarding Screen 3.
+  Future<bool> saveBusinessInfo({
+    required String businessName,
+    required String businessType,
+  }) async {
+    if (_currentUser == null) {
+      _error = 'No authenticated user found.';
+      notifyListeners();
+      return false;
+    }
+
+    if (businessName.trim().isEmpty) {
+      _error = 'Business name is required.';
+      notifyListeners();
+      return false;
+    }
+
+    if (businessType.trim().isEmpty) {
+      _error = 'Business type is required.';
+      notifyListeners();
+      return false;
+    }
+
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _userRepository.updateBusinessInfo(
+        userId: _currentUser!.uid,
+        businessName: businessName.trim(),
+        businessType: businessType.trim(),
+      );
+
+      _currentUser = _currentUser!.copyWith(
+        businessName: businessName.trim(),
+        businessType: businessType.trim(),
+        onboardingStep: 4,
+        onboardingComplete: false,
+      );
+
+      return true;
+    } catch (e, stackTrace) {
+      developer.log(
+        'Error saving business info',
+        error: e,
+        stackTrace: stackTrace,
+      );
+
+      _error = _formatErrorMessage(e);
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   /// Clears current user data on logout.
   void clearUserData() {
     if (_currentUser == null && _error == null) return;

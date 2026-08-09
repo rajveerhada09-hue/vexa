@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'business_info_screen.dart';
 import '../auth/presentation/screens/login_screen.dart';
 import '../user/providers/user_provider.dart';
 
@@ -120,8 +121,11 @@ class _AiPersonalityScreenState extends State<AiPersonalityScreen> {
     return;
   }
 
-  // Screen 3 abhi nahi bani hai.
-  // Isliye yahin rukenge.
+  if (!mounted) return;
+
+  Navigator.of(context).pushReplacement(
+    MaterialPageRoute(builder: (_) => const BusinessInfoScreen()),
+  );
 }
 
   @override

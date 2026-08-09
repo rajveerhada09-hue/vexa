@@ -3,10 +3,13 @@ import 'package:mobile/services/auth/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 
 import '../../../../core/widgets/phone_number_field.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../onboarding/ai_personality_screen.dart';
+import '../../../user/providers/user_provider.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -106,16 +109,17 @@ if (_selectedBusinessType == null) {
 
     if (!mounted) return;
 
+    await context.read<UserProvider>().loadCurrentUser();
+
+    if (!mounted) return;
+
     setState(() => _isLoading = false);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Account Created Successfully"),
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => const AiPersonalityScreen(),
       ),
     );
-
-    // TODO:
-    // Navigator.pushReplacement(...)
   } on FirebaseAuthException catch (e) {
   if (!mounted) return;
 
