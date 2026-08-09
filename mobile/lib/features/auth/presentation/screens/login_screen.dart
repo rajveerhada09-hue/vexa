@@ -5,11 +5,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../onboarding/ai_personality_screen.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import 'register_screen.dart';
 import '../../../user/providers/user_provider.dart';
-import '../../../ai/presentation/screens/home_screen.dart';
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -53,61 +54,60 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     await _authService.signInWithEmail(
-  email: _emailController.text.trim(),
-  password: _passwordController.text.trim(),
-);
+      email: _emailController.text.trim(),
+      password: _passwordController.text.trim(),
+    );
 
-if (!mounted) return;
+    if (!mounted) return;
 
-await context.read<UserProvider>().loadCurrentUser();
+    await context.read<UserProvider>().loadCurrentUser();
 
-if (!mounted) return;
+    if (!mounted) return;
 
-setState(() => _isLoading = false);
+    setState(() => _isLoading = false);
 
-Navigator.pushReplacement(
-  context,
-  MaterialPageRoute(
-    builder: (_) => const HomeScreen(),
-  ),
-);
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => const AiPersonalityScreen(),
+      ),
+    );
   } on FirebaseAuthException catch (e) {
-  String message;
+    String message;
 
-  switch (e.code) {
-    case 'invalid-credential':
-    case 'wrong-password':
-      message = 'Incorrect email or password.';
-      break;
+    switch (e.code) {
+      case 'invalid-credential':
+      case 'wrong-password':
+        message = 'Incorrect email or password.';
+        break;
 
-    case 'user-not-found':
-      message = 'No account found with this email.';
-      break;
+      case 'user-not-found':
+        message = 'No account found with this email.';
+        break;
 
-    case 'invalid-email':
-      message = 'Please enter a valid email.';
-      break;
+      case 'invalid-email':
+        message = 'Please enter a valid email.';
+        break;
 
-    case 'too-many-requests':
-      message = 'Too many attempts. Please try again later.';
-      break;
+      case 'too-many-requests':
+        message = 'Too many attempts. Please try again later.';
+        break;
 
-    case 'network-request-failed':
-      message = 'No internet connection.';
-      break;
+      case 'network-request-failed':
+        message = 'No internet connection.';
+        break;
 
-    default:
-      message = e.message ?? 'Login failed.';
+      default:
+        message = e.message ?? 'Login failed.';
+    }
+
+    if (!mounted) return;
+
+    setState(() => _isLoading = false);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
-
-  if (!mounted) return;
-
-  setState(() => _isLoading = false);
-
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text(message)),
-  );
-}
 }
 
   Future<void> _onGoogleLogin() async {
@@ -124,10 +124,9 @@ Navigator.pushReplacement(
 
     setState(() => _isLoading = false);
 
-    Navigator.pushReplacement(
-      context,
+    Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (_) => const HomeScreen(),
+        builder: (_) => const AiPersonalityScreen(),
       ),
     );
   } catch (e) {

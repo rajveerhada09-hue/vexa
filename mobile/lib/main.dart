@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 
-import 'features/ai/presentation/screens/home_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
-import 'features/user/providers/user_provider.dart';
+import 'features/onboarding/ai_personality_screen.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
+import 'features/ai/presentation/screens/home_screen.dart';
+
+import 'features/user/providers/user_provider.dart';
 import 'features/dashboard/provider/dashboard_provider.dart';
 
 void main() async {
@@ -26,25 +28,99 @@ class VexaApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-      ChangeNotifierProvider(
-        create: (_) => UserProvider(),
-      ),
-
-      ChangeNotifierProvider(
-        create: (_) => DashboardProvider(),
-  ),
-],
+        ChangeNotifierProvider(
+          create: (_) => UserProvider(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => DashboardProvider(),
+        ),
+      ],
       child: MaterialApp(
         title: 'Vexa',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-        brightness: Brightness.dark,
-        useMaterial3: true,
-),
-        home: StreamBuilder<User?>(
-  stream: FirebaseAuth.instance.authStateChanges(),
-  builder: (context, snapshot) {
-    if (snapshot.connectionState == ConnectionState.waiting) {
+          brightness: Brightness.dark,
+          useMaterial3: true,
+        ),
+        home: const AuthGate(),
+      ),
+    );
+  }
+}
+
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Scaffold(
+            body: Center(
+              child: Text(
+                'AUTH ERROR:\n${snapshot.error}',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          );
+        }
+
+        final firebaseUser = snapshot.data;
+
+        if (firebaseUser == null) {
+          return const LoginScreen();
+        }
+
+        return const _AuthenticatedUserLoader();
+      },
+    );
+  }
+}
+
+class _AuthenticatedUserLoader extends StatefulWidget {
+  const _AuthenticatedUserLoader();
+
+  @override
+  State<_AuthenticatedUserLoader> createState() =>
+      _AuthenticatedUserLoaderState();
+}
+
+class _AuthenticatedUserLoaderState
+    extends State<_AuthenticatedUserLoader> {
+  bool _loaded = false;
+
+  @override
+void initState() {
+  super.initState();
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    _loadUser();
+  });
+}
+
+  Future<void> _loadUser() async {
+    await context.read<UserProvider>().loadCurrentUser();
+
+    if (mounted) {
+      setState(() {
+        _loaded = true;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_loaded) {
       return const Scaffold(
         body: Center(
           child: CircularProgressIndicator(),
@@ -52,14 +128,25 @@ class VexaApp extends StatelessWidget {
       );
     }
 
-    if (snapshot.hasData) {
-      return const HomeScreen();
+    final userProvider = context.watch<UserProvider>();
+    final user = userProvider.currentUser;
+
+    if (user == null) {
+      return const Scaffold(
+        body: Center(
+          child: Text(
+            'Unable to load your account data.',
+          ),
+        ),
+      );
     }
 
-    return const LoginScreen();
-  },
-),
-      ),
-    );
+    // Onboarding is not finished.
+if (!user.onboardingComplete) {
+  return const AiPersonalityScreen();
+}
+
+// Onboarding is complete.
+return const HomeScreen();
   }
 }

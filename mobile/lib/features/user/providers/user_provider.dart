@@ -1,5 +1,7 @@
 import 'dart:developer' as developer;
+
 import 'package:flutter/foundation.dart';
+
 import '../model/user_model.dart';
 import '../repository/user_repository.dart';
 
@@ -10,52 +12,109 @@ class UserProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
 
-  UserProvider({UserRepository? userRepository}) 
+  UserProvider({UserRepository? userRepository})
       : _userRepository = userRepository ?? UserRepository();
 
   UserModel? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  /// Loads the current authenticated user's data from Firestore
+  /// Loads the currently authenticated user's Firestore data.
   Future<void> loadCurrentUser() async {
-    if (_isLoading) return; // Prevent concurrent/duplicate network calls
+    if (_isLoading) return;
 
     _isLoading = true;
     _error = null;
-    notifyListeners(); // First UI update: Trigger loading state and clear old errors
+    notifyListeners();
 
     try {
       _currentUser = await _userRepository.getCurrentUser();
     } catch (e, stackTrace) {
       developer.log(
-        'Error loading current user', 
-        error: e, 
+        'Error loading current user',
+        error: e,
         stackTrace: stackTrace,
       );
+
       _error = _formatErrorMessage(e);
     } finally {
       _isLoading = false;
-      notifyListeners(); // Second UI update: Trigger data rendering or error display simultaneously with loading ending
+      notifyListeners();
     }
   }
 
-  /// Clears the current user data (Useful for logout scenarios)
+  /// Saves the personality selected on onboarding Screen 2.
+  Future<bool> saveAiPersonality({
+    required String personality,
+    String? customInstructions,
+  }) async {
+    if (_currentUser == null) {
+      _error = 'No authenticated user found.';
+      notifyListeners();
+      return false;
+    }
+
+    final trimmedCustomInstructions = customInstructions?.trim();
+
+    if (personality == 'custom' &&
+        (trimmedCustomInstructions == null ||
+            trimmedCustomInstructions.isEmpty)) {
+      _error = 'Please describe how Vexa should behave.';
+      notifyListeners();
+      return false;
+    }
+
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _userRepository.updateAiPersonality(
+        userId: _currentUser!.uid,
+        aiPersonality: personality,
+        customAiPersonality: trimmedCustomInstructions,
+      );
+
+      _currentUser = _currentUser!.copyWith(
+        aiPersonality: personality,
+        customAiPersonality:
+            personality == 'custom' ? trimmedCustomInstructions : null,
+        onboardingStep: 3,
+        onboardingComplete: false,
+      );
+
+      return true;
+    } catch (e, stackTrace) {
+      developer.log(
+        'Error saving AI personality',
+        error: e,
+        stackTrace: stackTrace,
+      );
+
+      _error = _formatErrorMessage(e);
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Clears current user data on logout.
   void clearUserData() {
-    // Only notify if there's actual state to clear to prevent unnecessary rebuilds
     if (_currentUser == null && _error == null) return;
-    
+
     _currentUser = null;
     _error = null;
     notifyListeners();
   }
 
-  /// Helper to clean up exception prefixes for UI display
   String _formatErrorMessage(dynamic error) {
     final errorString = error.toString();
+
     if (errorString.startsWith('Exception: ')) {
       return errorString.replaceFirst('Exception: ', '');
     }
+
     return errorString;
   }
 }

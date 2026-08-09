@@ -8,6 +8,13 @@ class UserModel {
   final String? phone;
   final String? businessName;
   final String? businessType;
+
+  final String? aiPersonality;
+  final String? customAiPersonality;
+
+  final int onboardingStep;
+  final bool onboardingComplete;
+
   final DateTime createdAt;
 
   const UserModel({
@@ -18,10 +25,13 @@ class UserModel {
     this.phone,
     this.businessName,
     this.businessType,
+    this.aiPersonality,
+    this.customAiPersonality,
+    this.onboardingStep = 1,
+    this.onboardingComplete = false,
     required this.createdAt,
   });
 
-  /// Factory constructor to safely create a UserModel from a Firestore Map
   factory UserModel.fromMap(Map<String, dynamic> map) {
     return UserModel(
       uid: map['uid'] as String? ?? '',
@@ -31,11 +41,18 @@ class UserModel {
       phone: map['phone'] as String?,
       businessName: map['businessName'] as String?,
       businessType: map['businessType'] as String?,
+
+      aiPersonality: map['aiPersonality'] as String?,
+      customAiPersonality: map['customAiPersonality'] as String?,
+
+      onboardingStep: (map['onboardingStep'] as num?)?.toInt() ?? 1,
+      onboardingComplete:
+          map['onboardingComplete'] as bool? ?? false,
+
       createdAt: _parseTimestamp(map['createdAt']),
     );
   }
 
-  /// Converts the UserModel into a Map for Firestore
   Map<String, dynamic> toMap() {
     return {
       'uid': uid,
@@ -45,11 +62,20 @@ class UserModel {
       if (phone != null) 'phone': phone,
       if (businessName != null) 'businessName': businessName,
       if (businessType != null) 'businessType': businessType,
+
+      if (aiPersonality != null)
+        'aiPersonality': aiPersonality,
+
+      if (customAiPersonality != null)
+        'customAiPersonality': customAiPersonality,
+
+      'onboardingStep': onboardingStep,
+      'onboardingComplete': onboardingComplete,
+
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
 
-  /// Creates a copy of this UserModel with the given fields replaced with the new values
   UserModel copyWith({
     String? uid,
     String? fullName,
@@ -58,6 +84,10 @@ class UserModel {
     String? phone,
     String? businessName,
     String? businessType,
+    String? aiPersonality,
+    String? customAiPersonality,
+    int? onboardingStep,
+    bool? onboardingComplete,
     DateTime? createdAt,
   }) {
     return UserModel(
@@ -68,53 +98,78 @@ class UserModel {
       phone: phone ?? this.phone,
       businessName: businessName ?? this.businessName,
       businessType: businessType ?? this.businessType,
+
+      aiPersonality:
+          aiPersonality ?? this.aiPersonality,
+
+      customAiPersonality:
+          customAiPersonality ?? this.customAiPersonality,
+
+      onboardingStep:
+          onboardingStep ?? this.onboardingStep,
+
+      onboardingComplete:
+          onboardingComplete ?? this.onboardingComplete,
+
       createdAt: createdAt ?? this.createdAt,
     );
   }
 
-  /// Safely parses a Firestore Timestamp (or other formats) into a DateTime object
   static DateTime _parseTimestamp(dynamic timestamp) {
     if (timestamp == null) {
-  return DateTime.fromMillisecondsSinceEpoch(0);
-}
+      return DateTime.fromMillisecondsSinceEpoch(0);
+    }
+
     if (timestamp is Timestamp) {
       return timestamp.toDate();
     }
+
     if (timestamp is String) {
-  return DateTime.tryParse(timestamp) ??
-      DateTime.fromMillisecondsSinceEpoch(0);
-}
+      return DateTime.tryParse(timestamp) ??
+          DateTime.fromMillisecondsSinceEpoch(0);
+    }
+
     if (timestamp is int) {
       return DateTime.fromMillisecondsSinceEpoch(timestamp);
     }
+
     return DateTime.fromMillisecondsSinceEpoch(0);
   }
 
-  /// Overriding == and hashCode for object equality (important for Provider/State management)
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-  
+
     return other is UserModel &&
-      other.uid == uid &&
-      other.fullName == fullName &&
-      other.username == username &&
-      other.email == email &&
-      other.phone == phone &&
-      other.businessName == businessName &&
-      other.businessType == businessType &&
-      other.createdAt == createdAt;
+        other.uid == uid &&
+        other.fullName == fullName &&
+        other.username == username &&
+        other.email == email &&
+        other.phone == phone &&
+        other.businessName == businessName &&
+        other.businessType == businessType &&
+        other.aiPersonality == aiPersonality &&
+        other.customAiPersonality == customAiPersonality &&
+        other.onboardingStep == onboardingStep &&
+        other.onboardingComplete == onboardingComplete &&
+        other.createdAt == createdAt;
   }
 
   @override
   int get hashCode {
-    return uid.hashCode ^
-      fullName.hashCode ^
-      username.hashCode ^
-      email.hashCode ^
-      phone.hashCode ^
-      businessName.hashCode ^
-      businessType.hashCode ^
-      createdAt.hashCode;
+    return Object.hash(
+      uid,
+      fullName,
+      username,
+      email,
+      phone,
+      businessName,
+      businessType,
+      aiPersonality,
+      customAiPersonality,
+      onboardingStep,
+      onboardingComplete,
+      createdAt,
+    );
   }
 }

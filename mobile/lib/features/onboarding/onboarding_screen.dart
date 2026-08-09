@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../auth/presentation/screens/login_screen.dart';
 
 /// Premium 3-page onboarding flow for Vexa Voice.
 class OnboardingScreen extends StatefulWidget {
@@ -61,34 +62,42 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     setState(() => _currentPage = index);
   }
 
-  void _nextPage() {
-    if (_currentPage < _pages.length - 1) {
-      _pageController.nextPage(
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeOutCubic,
-      );
-    } else {
-      _finishOnboarding();
-    }
-  }
-
-  void _skip() {
-    _finishOnboarding();
-  }
-
   void _finishOnboarding() {
-    // Replace with your real auth / dashboard route
-    // Example: context.go('/auth') or Navigator.pushReplacementNamed(...)
+  if (_currentPage < _pages.length - 1) {
+    _pageController.nextPage(
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOutCubic,
+    );
+  } else {
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (_, _, _) => const _AuthPlaceholder(),
-        transitionsBuilder: (_, animation, _, child) {
-          return FadeTransition(opacity: animation, child: child);
+        pageBuilder: (_, a, b) => const LoginScreen(),
+        transitionsBuilder: (_, animation, __, child) {
+          return FadeTransition(
+            opacity: animation,
+            child: child,
+          );
         },
         transitionDuration: const Duration(milliseconds: 400),
       ),
     );
   }
+}
+
+void _skip() {
+  Navigator.of(context).pushReplacement(
+    PageRouteBuilder(
+      pageBuilder: (_, a, b) => const LoginScreen(),
+      transitionsBuilder: (_, animation, __, child) {
+        return FadeTransition(
+          opacity: animation,
+          child: child,
+        );
+      },
+      transitionDuration: const Duration(milliseconds: 400),
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -173,7 +182,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     width: double.infinity,
                     height: 52,
                     child: ElevatedButton(
-                      onPressed: _nextPage,
+                      onPressed: _finishOnboarding,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: AppColors.textOnPrimary,
@@ -187,7 +196,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           letterSpacing: -0.2,
                         ),
                       ),
-                      child: Text(isLastPage ? 'Get Started' : 'Next'),
+                      child: const Text('Get Started'),
                     ),
                   ),
                 ],
@@ -275,25 +284,6 @@ class _OnboardingPage extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ─── Temporary placeholder (delete when auth exists) ───────────────
-class _AuthPlaceholder extends StatelessWidget {
-  const _AuthPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: AppColors.background,
-      body: Center(
-        child: Text(
-          'Auth / Login Screen\n(replace this)',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: AppColors.textSecondary),
-        ),
       ),
     );
   }
