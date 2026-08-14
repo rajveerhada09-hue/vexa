@@ -8,9 +8,21 @@ class UserModel {
   final String? phone;
   final String? businessName;
   final String? businessType;
+  final String? businessOpeningTime;
+  final String? businessClosingTime;
+  final String? businessTimeZone;
+  final String? languagePreference;
+  final String? voicePreference;
 
   final String? aiPersonality;
   final String? customAiPersonality;
+
+  final String? greetingTemplate;
+  final String? customGreeting;
+
+  final int productsCount;
+  final int documentsCount;
+  final int faqsCount;
 
   final int onboardingStep;
   final bool onboardingComplete;
@@ -25,8 +37,18 @@ class UserModel {
     this.phone,
     this.businessName,
     this.businessType,
+    this.businessOpeningTime,
+    this.businessClosingTime,
+    this.businessTimeZone,
+    this.languagePreference,
+    this.voicePreference,
     this.aiPersonality,
     this.customAiPersonality,
+    this.greetingTemplate,
+    this.customGreeting,
+    this.productsCount = 0,
+    this.documentsCount = 0,
+    this.faqsCount = 0,
     this.onboardingStep = 1,
     this.onboardingComplete = false,
     required this.createdAt,
@@ -41,9 +63,21 @@ class UserModel {
       phone: map['phone'] as String?,
       businessName: map['businessName'] as String?,
       businessType: map['businessType'] as String?,
+      businessOpeningTime: map['businessOpeningTime'] as String?,
+      businessClosingTime: map['businessClosingTime'] as String?,
+      businessTimeZone: map['businessTimeZone'] as String?,
+      languagePreference: map['languagePreference'] as String?,
+      voicePreference: map['voicePreference'] as String?,
 
       aiPersonality: map['aiPersonality'] as String?,
       customAiPersonality: map['customAiPersonality'] as String?,
+
+      greetingTemplate: map['greetingTemplate'] as String?,
+      customGreeting: map['customGreeting'] as String?,
+
+      productsCount: (map['productsCount'] as num?)?.toInt() ?? 0,
+      documentsCount: (map['documentsCount'] as num?)?.toInt() ?? 0,
+      faqsCount: (map['faqsCount'] as num?)?.toInt() ?? 0,
 
       onboardingStep: (map['onboardingStep'] as num?)?.toInt() ?? 1,
       onboardingComplete:
@@ -62,12 +96,26 @@ class UserModel {
       if (phone != null) 'phone': phone,
       if (businessName != null) 'businessName': businessName,
       if (businessType != null) 'businessType': businessType,
+      if (businessOpeningTime != null)
+        'businessOpeningTime': businessOpeningTime,
+      if (businessClosingTime != null)
+        'businessClosingTime': businessClosingTime,
+      if (businessTimeZone != null) 'businessTimeZone': businessTimeZone,
+      if (languagePreference != null) 'languagePreference': languagePreference,
+      if (voicePreference != null) 'voicePreference': voicePreference,
 
       if (aiPersonality != null)
         'aiPersonality': aiPersonality,
 
       if (customAiPersonality != null)
         'customAiPersonality': customAiPersonality,
+
+      if (greetingTemplate != null) 'greetingTemplate': greetingTemplate,
+      if (customGreeting != null) 'customGreeting': customGreeting,
+
+      'productsCount': productsCount,
+      'documentsCount': documentsCount,
+      'faqsCount': faqsCount,
 
       'onboardingStep': onboardingStep,
       'onboardingComplete': onboardingComplete,
@@ -84,8 +132,18 @@ class UserModel {
     String? phone,
     String? businessName,
     String? businessType,
+    String? businessOpeningTime,
+    String? businessClosingTime,
+    String? businessTimeZone,
+    String? languagePreference,
+    String? voicePreference,
     String? aiPersonality,
     String? customAiPersonality,
+    String? greetingTemplate,
+    String? customGreeting,
+    int? productsCount,
+    int? documentsCount,
+    int? faqsCount,
     int? onboardingStep,
     bool? onboardingComplete,
     DateTime? createdAt,
@@ -98,12 +156,29 @@ class UserModel {
       phone: phone ?? this.phone,
       businessName: businessName ?? this.businessName,
       businessType: businessType ?? this.businessType,
+      businessOpeningTime:
+          businessOpeningTime ?? this.businessOpeningTime,
+      businessClosingTime:
+          businessClosingTime ?? this.businessClosingTime,
+      businessTimeZone: businessTimeZone ?? this.businessTimeZone,
+      languagePreference: languagePreference ?? this.languagePreference,
+      voicePreference: voicePreference ?? this.voicePreference,
 
       aiPersonality:
           aiPersonality ?? this.aiPersonality,
 
       customAiPersonality:
           customAiPersonality ?? this.customAiPersonality,
+
+      greetingTemplate:
+          greetingTemplate ?? this.greetingTemplate,
+
+      customGreeting:
+          customGreeting ?? this.customGreeting,
+
+      productsCount: productsCount ?? this.productsCount,
+      documentsCount: documentsCount ?? this.documentsCount,
+      faqsCount: faqsCount ?? this.faqsCount,
 
       onboardingStep:
           onboardingStep ?? this.onboardingStep,
@@ -148,16 +223,26 @@ class UserModel {
         other.phone == phone &&
         other.businessName == businessName &&
         other.businessType == businessType &&
+        other.businessOpeningTime == businessOpeningTime &&
+        other.businessClosingTime == businessClosingTime &&
+        other.businessTimeZone == businessTimeZone &&
+        other.languagePreference == languagePreference &&
+        other.voicePreference == voicePreference &&
         other.aiPersonality == aiPersonality &&
         other.customAiPersonality == customAiPersonality &&
+        other.greetingTemplate == greetingTemplate &&
+        other.customGreeting == customGreeting &&
+        other.productsCount == productsCount &&
+        other.documentsCount == documentsCount &&
+        other.faqsCount == faqsCount &&
         other.onboardingStep == onboardingStep &&
         other.onboardingComplete == onboardingComplete &&
         other.createdAt == createdAt;
   }
 
-  @override
+@override
   int get hashCode {
-    return Object.hash(
+    return Object.hashAll([
       uid,
       fullName,
       username,
@@ -165,11 +250,21 @@ class UserModel {
       phone,
       businessName,
       businessType,
+      businessOpeningTime,
+      businessClosingTime,
+      businessTimeZone,
+      languagePreference,
+      voicePreference,
       aiPersonality,
       customAiPersonality,
+      greetingTemplate,
+      customGreeting,
+      productsCount,
+      documentsCount,
+      faqsCount,
       onboardingStep,
       onboardingComplete,
       createdAt,
-    );
+    ]);
   }
 }

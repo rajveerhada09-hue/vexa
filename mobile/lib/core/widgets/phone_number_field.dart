@@ -32,86 +32,66 @@ class PhoneNumberField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-  return Column(
-  crossAxisAlignment: CrossAxisAlignment.start,
-  children: [
-    Text(
-      labelText,
-      style: const TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w500,
-        letterSpacing: 0.1,
-        color: AppColors.textSecondary,
-      ),
-    ),
-    const SizedBox(height: 8),
-
-    IntlPhoneField(
-      controller: controller,
-      focusNode: focusNode,
-      enabled: enabled,
-      initialCountryCode: initialCountryCode,
-      textInputAction: textInputAction,
-      disableLengthCheck: false,
-      style: theme.textTheme.bodyLarge?.copyWith(
-        color: AppColors.textPrimary,
-        letterSpacing: 0.2,
-      ),
-      dropdownTextStyle: theme.textTheme.bodyLarge?.copyWith(
-        color: AppColors.textPrimary,
-      ),
-      cursorColor: AppColors.primary,
-      decoration: InputDecoration(
-        hintText: hintText,
-        filled: true,
-        fillColor: AppColors.inputFill,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          labelText,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.1,
+            color: AppColors.textSecondary,
+          ),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: AppColors.inputBorder,),
+        const SizedBox(height: 8),
+        IntlPhoneField(
+          controller: controller,
+          focusNode: focusNode,
+          enabled: enabled,
+          initialCountryCode: initialCountryCode,
+          textInputAction: textInputAction,
+          disableLengthCheck: false,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w400,
+            color: AppColors.textPrimary,
+          ),
+          dropdownTextStyle: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w400,
+            color: AppColors.textPrimary,
+          ),
+          cursorColor: AppColors.primary,
+          decoration: InputDecoration(
+            hintText: hintText,
+            hintStyle: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w400,
+              color: AppColors.textSecondary,
+            ),
+            counter: const Offstage(),
+          ),
+          dropdownIcon: const Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: AppColors.iconSecondary,
+            size: 20,
+          ),
+          flagsButtonPadding: EdgeInsets.zero,
+          onChanged: onChanged,
+          onSaved: onSaved,
+          validator: validator ??
+              (PhoneNumber? phone) {
+                if (phone == null || phone.number.isEmpty) {
+                  return 'Phone number is required';
+                }
+                if (!phone.isValidNumber()) {
+                  return 'Enter a valid phone number';
+                }
+                return null;
+              },
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.error),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.error, width: 1.5),
-        ),
-        hintStyle: theme.textTheme.bodyMedium?.copyWith(
-          color: AppColors.textSecondary,
-        ),
-      ),
-      dropdownIcon: const Icon(
-        Icons.keyboard_arrow_down_rounded,
-        color: AppColors.iconSecondary,
-        size: 22,
-      ),
-      flagsButtonPadding: const EdgeInsets.only(left: 12),
-      onChanged: onChanged,
-      onSaved: onSaved,
-            validator: validator ??
-          (PhoneNumber? phone) {
-            if (phone == null || phone.number.isEmpty) {
-              return 'Phone number is required';
-            }
-            if (!phone.isValidNumber()) {
-              return 'Enter a valid phone number';
-            }
-            return null;
-          },
-    ),
-  ],
-);
+      ],
+    );
   }
 }

@@ -1,21 +1,30 @@
+import 'dart:convert';
+import 'dart:developer' as developer;
+import 'dart:io';
+
+import 'package:audio_session/audio_session.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:path_provider/path_provider.dart';
 
-import 'business_info_screen.dart';
-import '../auth/presentation/screens/login_screen.dart';
+import 'language_selection_screen.dart';
+import 'greeting_template_screen.dart';
 import '../user/providers/user_provider.dart';
+import '../../../../services/voice/voice_service.dart';
 
-class AiPersonalityScreen extends StatefulWidget {
-  const AiPersonalityScreen({super.key});
+class VoiceSelectionScreen extends StatefulWidget {
+  const VoiceSelectionScreen({super.key});
 
   @override
-  State<AiPersonalityScreen> createState() => _AiPersonalityScreenState();
+  State<VoiceSelectionScreen> createState() => _VoiceSelectionScreenState();
 }
 
-class _AiPersonalityScreenState extends State<AiPersonalityScreen> {
-  String? _selectedPersonality;
-  final TextEditingController _customController = TextEditingController();
+class _VoiceSelectionScreenState extends State<VoiceSelectionScreen> {
+  String? _selectedVoice = 'male';
   bool _isLoading = false;
+  bool _isPlayingPreview = false;
+  String? _playingVoice; // 'male' or 'female'
 
   static const Color background = Color(0xFF09090B);
   static const Color card = Color(0xFF151518);
@@ -25,113 +34,20 @@ class _AiPersonalityScreenState extends State<AiPersonalityScreen> {
   static const Color textPrimary = Color(0xFFF5F5F7);
   static const Color textSecondary = Color(0xFF96969F);
 
-  final List<_Personality> _personalities = const [
-    _Personality(
-      id: 'professional',
-      title: 'Professional',
-      description: 'Clear, confident and business-focused.',
-      icon: Icons.business_center_outlined,
-      preview:
-          'Hello, thank you for calling. How may I assist you today?',
+  static const List<_VoiceOption> _voices = [
+    _VoiceOption(
+      code: 'male',
+      label: 'Male',
+      subtitle: 'Clear and confident',
+      icon: Icons.male_rounded,
     ),
-    _Personality(
-      id: 'friendly',
-      title: 'Friendly',
-      description: 'Warm, welcoming and conversational.',
-      icon: Icons.waving_hand_outlined,
-      preview:
-          'Hi! Thanks for calling. How can I help you today?',
-    ),
-    _Personality(
-      id: 'professional_friendly',
-      title: 'Professional + Friendly',
-      description: 'Polished, natural and approachable.',
-      icon: Icons.auto_awesome_outlined,
-      preview:
-          "Hi, thanks for calling. I'd be happy to help you today. What can I do for you?",
-    ),
-    _Personality(
-      id: 'custom',
-      title: 'Custom',
-      description: 'Define exactly how Vexa should behave.',
-      icon: Icons.tune_outlined,
-      preview: '',
+    _VoiceOption(
+      code: 'female',
+      label: 'Female',
+      subtitle: 'Clear and natural',
+      icon: Icons.female_rounded,
     ),
   ];
-
-  @override
-  void dispose() {
-    _customController.dispose();
-    super.dispose();
-  }
-
-  bool get _canContinue {
-    if (_selectedPersonality == null) {
-      return false;
-    }
-
-    if (_selectedPersonality == 'custom') {
-      return _customController.text.trim().isNotEmpty;
-    }
-
-    return true;
-  }
-
-  _Personality? get _selectedOption {
-    if (_selectedPersonality == null) {
-      return null;
-    }
-
-    for (final personality in _personalities) {
-      if (personality.id == _selectedPersonality) {
-        return personality;
-      }
-    }
-
-    return null;
-  }
-
-  void _selectPersonality(String id) {
-    setState(() {
-      _selectedPersonality = id;
-    });
-  }
-
-  Future<void> _continue() async {
-  if (!_canContinue || _isLoading) return;
-
-  setState(() => _isLoading = true);
-
-  final userProvider = context.read<UserProvider>();
-
-  final success = await userProvider.saveAiPersonality(
-    personality: _selectedPersonality!,
-    customInstructions: _selectedPersonality == 'custom'
-        ? _customController.text.trim()
-        : null,
-  );
-
-  if (!mounted) return;
-
-  setState(() => _isLoading = false);
-
-  if (!success) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          userProvider.error ?? 'Failed to save personality.',
-        ),
-      ),
-    );
-    return;
-  }
-
-  if (!mounted) return;
-
-  Navigator.of(context).pushReplacement(
-    MaterialPageRoute(builder: (_) => const BusinessInfoScreen()),
-  );
-}
 
   @override
   Widget build(BuildContext context) {
@@ -141,7 +57,6 @@ class _AiPersonalityScreenState extends State<AiPersonalityScreen> {
         child: Column(
           children: [
             _buildHeader(),
-
             Expanded(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
@@ -151,25 +66,17 @@ class _AiPersonalityScreenState extends State<AiPersonalityScreen> {
                   children: [
                     _buildTitle(),
                     const SizedBox(height: 28),
-
-                    ..._personalities.map(
-                      (personality) => Padding(
+                    ..._voices.map(
+                      (voice) => Padding(
                         padding: const EdgeInsets.only(bottom: 12),
-                        child: _buildPersonalityCard(personality),
+                        child: _buildVoiceCard(voice),
                       ),
                     ),
-
-                    if (_selectedPersonality != null) ...[
-                      const SizedBox(height: 12),
-                      _buildPreviewSection(),
-                    ],
-
                     const SizedBox(height: 24),
                   ],
                 ),
               ),
             ),
-
             _buildBottomButton(),
           ],
         ),
@@ -185,13 +92,13 @@ class _AiPersonalityScreenState extends State<AiPersonalityScreen> {
           Row(
             children: [
               GestureDetector(
-              onTap: () {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(
-                    builder: (_) => const LoginScreen(),
-                  ),
-                );
-              },
+                onTap: () {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                      builder: (_) => const LanguageSelectionScreen(),
+                    ),
+                  );
+                },
                 child: Container(
                   width: 42,
                   height: 42,
@@ -209,11 +116,9 @@ class _AiPersonalityScreenState extends State<AiPersonalityScreen> {
                   ),
                 ),
               ),
-
               const Spacer(),
-
               const Text(
-                '2 of 8',
+                '5 of 8',
                 style: TextStyle(
                   color: textSecondary,
                   fontSize: 13,
@@ -222,9 +127,7 @@ class _AiPersonalityScreenState extends State<AiPersonalityScreen> {
               ),
             ],
           ),
-
           const SizedBox(height: 16),
-
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: Stack(
@@ -235,7 +138,7 @@ class _AiPersonalityScreenState extends State<AiPersonalityScreen> {
                   color: card,
                 ),
                 FractionallySizedBox(
-                  widthFactor: 0.25,
+                  widthFactor: 0.625,
                   child: Container(
                     height: 4,
                     decoration: BoxDecoration(
@@ -257,7 +160,7 @@ class _AiPersonalityScreenState extends State<AiPersonalityScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: const [
         Text(
-          "Choose Vexa's personality",
+          'Choose your voice',
           style: TextStyle(
             color: textPrimary,
             fontSize: 28,
@@ -268,7 +171,7 @@ class _AiPersonalityScreenState extends State<AiPersonalityScreen> {
         ),
         SizedBox(height: 10),
         Text(
-          'Decide how Vexa should sound when speaking with your customers.',
+          'Choose how Vexa should sound when speaking to you.',
           style: TextStyle(
             color: textSecondary,
             fontSize: 15,
@@ -279,11 +182,12 @@ class _AiPersonalityScreenState extends State<AiPersonalityScreen> {
     );
   }
 
-  Widget _buildPersonalityCard(_Personality personality) {
-    final selected = _selectedPersonality == personality.id;
+  Widget _buildVoiceCard(_VoiceOption voice) {
+    final selected = _selectedVoice == voice.code;
+    final isPlaying = _isPlayingPreview && _playingVoice == voice.code;
 
     return GestureDetector(
-      onTap: () => _selectPersonality(personality.id),
+      onTap: () => setState(() => _selectedVoice = voice.code),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOut,
@@ -311,29 +215,27 @@ class _AiPersonalityScreenState extends State<AiPersonalityScreen> {
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(
-                personality.icon,
+                voice.icon,
                 color: selected ? primarySoft : textSecondary,
                 size: 22,
               ),
             ),
-
             const SizedBox(width: 14),
-
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    personality.title,
+                    voice.label,
                     style: const TextStyle(
-                    color: textPrimary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                      color: textPrimary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    personality.description,
+                    voice.subtitle,
                     style: const TextStyle(
                       color: textSecondary,
                       fontSize: 13.5,
@@ -343,9 +245,51 @@ class _AiPersonalityScreenState extends State<AiPersonalityScreen> {
                 ],
               ),
             ),
-
             const SizedBox(width: 10),
-
+            // Preview button
+            GestureDetector(
+              onTap: _isPlayingPreview
+                  ? null
+                  : () => _playPreview(voice.code),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: isPlaying
+                      ? primary.withOpacity(0.2)
+                      : selected
+                          ? primary.withOpacity(0.18)
+                          : background,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isPlaying
+                        ? primary
+                        : selected
+                            ? primary.withOpacity(0.75)
+                            : Colors.white.withOpacity(0.055),
+                    width: isPlaying ? 1.5 : 1,
+                  ),
+                ),
+                child: Center(
+                  child: isPlaying
+                      ? SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: primary,
+                          ),
+                        )
+                      : Icon(
+                          Icons.play_arrow_rounded,
+                          color: selected ? primarySoft : textSecondary,
+                          size: 22,
+                        ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
             AnimatedContainer(
               duration: const Duration(milliseconds: 180),
               width: 22,
@@ -374,130 +318,115 @@ class _AiPersonalityScreenState extends State<AiPersonalityScreen> {
     );
   }
 
-  Widget _buildPreviewSection() {
-    final option = _selectedOption;
+  Future<void> _playPreview(String voiceCode) async {
+    if (_isPlayingPreview) return;
 
-    if (option == null) {
-      return const SizedBox.shrink();
-    }
+    final userProvider = context.read<UserProvider>();
+    final languagePreference = userProvider.currentUser?.languagePreference ?? 'en';
+    final languageCode = languagePreference == 'auto' ? 'en' : languagePreference;
 
-    if (option.id == 'custom') {
-      return _buildCustomInstructions();
-    }
+    setState(() {
+      _isPlayingPreview = true;
+      _playingVoice = voiceCode;
+    });
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Example response',
-          style: TextStyle(
-            color: textSecondary,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-          ),
+    try {
+      final voiceService = VoiceService();
+      final audioBase64 = await voiceService.generatePreview(
+        language: languageCode,
+        voiceGender: voiceCode,
+      );
+
+      if (!mounted) return;
+
+      // Play audio from base64
+      await _playAudioFromBase64(audioBase64);
+    } catch (e, stackTrace) {
+      developer.log(
+        'Error playing preview',
+        error: e,
+        stackTrace: stackTrace,
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to play preview: ${e.toString()}'),
+          backgroundColor: Colors.redAccent,
         ),
-
-        const SizedBox(height: 10),
-
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: card,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.055),
-            ),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(
-                Icons.format_quote_rounded,
-                color: primary,
-                size: 22,
-              ),
-
-              const SizedBox(width: 12),
-
-              Expanded(
-                child: Text(
-                  option.preview,
-                  style: const TextStyle(
-                    color: textPrimary,
-                    fontSize: 14.5,
-                    height: 1.55,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPlayingPreview = false;
+          _playingVoice = null;
+        });
+      }
+    }
   }
 
-  Widget _buildCustomInstructions() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'How should Vexa behave?',
-          style: TextStyle(
-            color: textPrimary,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+  Future<void> _playAudioFromBase64(String base64String) async {
+  final player = AudioPlayer();
+  File? file;
 
-        const SizedBox(height: 10),
+  try {
+    final session = await AudioSession.instance;
 
-        TextField(
-          controller: _customController,
-          onChanged: (_) => setState(() {}),
-          maxLines: 5,
-          minLines: 4,
-          style: const TextStyle(
-            color: textPrimary,
-            fontSize: 14,
-            height: 1.45,
-          ),
-          cursorColor: primary,
-          decoration: InputDecoration(
-            hintText:
-                'Example: Be polite, concise and helpful. Speak naturally and never sound robotic.',
-            hintStyle: TextStyle(
-              color: textSecondary.withOpacity(0.55),
-              fontSize: 13.5,
-              height: 1.4,
-            ),
-            filled: true,
-            fillColor: card,
-            contentPadding: const EdgeInsets.all(16),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(
-                color: Colors.white.withOpacity(0.055),
-              ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(
-                color: Colors.white.withOpacity(0.055),
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(
-                color: primary,
-                width: 1.2,
-              ),
-            ),
-          ),
-        ),
-      ],
+    await session.configure(
+      const AudioSessionConfiguration.music(),
     );
+
+    await session.setActive(true);
+
+    final bytes = base64Decode(base64String);
+
+    developer.log(
+      'Decoded preview audio: ${bytes.length} bytes',
+    );
+
+    if (bytes.isEmpty) {
+      throw Exception('Decoded audio is empty.');
+    }
+
+    final tempDir = await getTemporaryDirectory();
+
+    file = File(
+      '${tempDir.path}/vexa_preview_${DateTime.now().millisecondsSinceEpoch}.mp3',
+    );
+
+    await file.writeAsBytes(bytes, flush: true);
+
+    developer.log(
+      'Preview file created: ${file.path}, size: ${await file.length()} bytes',
+    );
+
+    final duration = await player.setFilePath(file.path);
+
+    developer.log(
+      'Audio loaded successfully. Duration: $duration',
+    );
+
+    await player.setVolume(1.0);
+
+    await player.play();
+
+    developer.log('Preview playback started.');
+
+    await player.playerStateStream.firstWhere(
+      (state) => state.processingState == ProcessingState.completed,
+    );
+
+    developer.log('Preview playback completed.');
+  } catch (e, stackTrace) {
+    developer.log(
+      'ERROR playing preview audio',
+      error: e,
+      stackTrace: stackTrace,
+    );
+  } finally {
+    await player.dispose();
   }
+}
 
   Widget _buildBottomButton() {
     return Container(
@@ -514,7 +443,7 @@ class _AiPersonalityScreenState extends State<AiPersonalityScreen> {
         width: double.infinity,
         height: 54,
         child: ElevatedButton(
-          onPressed: _canContinue && !_isLoading ? _continue : null,
+          onPressed: _selectedVoice != null && !_isLoading ? _continue : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: primary,
             disabledBackgroundColor: card,
@@ -538,7 +467,7 @@ class _AiPersonalityScreenState extends State<AiPersonalityScreen> {
                     Text(
                       'Continue',
                       style: TextStyle(
-                        color: _canContinue ? Colors.white : textSecondary,
+                        color: _selectedVoice != null ? Colors.white : textSecondary,
                         fontSize: 15.5,
                         fontWeight: FontWeight.w600,
                       ),
@@ -546,7 +475,7 @@ class _AiPersonalityScreenState extends State<AiPersonalityScreen> {
                     const SizedBox(width: 8),
                     Icon(
                       Icons.arrow_forward_rounded,
-                      color: _canContinue ? Colors.white : textSecondary,
+                      color: _selectedVoice != null ? Colors.white : textSecondary,
                       size: 19,
                     ),
                   ],
@@ -555,20 +484,51 @@ class _AiPersonalityScreenState extends State<AiPersonalityScreen> {
       ),
     );
   }
+
+  Future<void> _continue() async {
+    if (_selectedVoice == null) return;
+
+    setState(() => _isLoading = true);
+
+    final userProvider = context.read<UserProvider>();
+
+    final success = await userProvider.saveVoicePreference(
+      voicePreference: _selectedVoice!,
+    );
+
+    if (!mounted) return;
+
+    setState(() => _isLoading = false);
+
+    if (!success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            userProvider.error ?? 'Failed to save voice preference.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const GreetingTemplateScreen()),
+    );
+  }
 }
 
-class _Personality {
-  final String id;
-  final String title;
-  final String description;
+class _VoiceOption {
+  final String code;
+  final String label;
+  final String subtitle;
   final IconData icon;
-  final String preview;
 
-  const _Personality({
-    required this.id,
-    required this.title,
-    required this.description,
+  const _VoiceOption({
+    required this.code,
+    required this.label,
+    required this.subtitle,
     required this.icon,
-    required this.preview,
   });
 }

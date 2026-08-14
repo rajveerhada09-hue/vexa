@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 abstract class AuthService {
   Future<void> signInWithEmail({
     required String email,
@@ -8,14 +9,14 @@ abstract class AuthService {
   });
 
   Future<void> registerWithEmail({
-  required String fullName,
-  required String username,
-  required String email,
-  required String password,
-  required String phone,
-  required String businessName,
-  required String businessType,
-});
+    required String fullName,
+    required String username,
+    required String email,
+    required String password,
+    required String phone,
+    String? businessName,
+    String? businessType,
+  });
 
   Future<void> signInWithGoogle();
 }
@@ -24,7 +25,6 @@ class AuthServiceImpl implements AuthService {
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
 
 
   @override
@@ -40,55 +40,63 @@ class AuthServiceImpl implements AuthService {
 
   @override
   Future<void> registerWithEmail({
-  required String fullName,
-  required String username,
-  required String email,
-  required String password,
-  required String phone,
-  required String businessName,
-  required String businessType,
-}) async {
+    required String fullName,
+    required String username,
+    required String email,
+    required String password,
+    required String phone,
+    String? businessName,
+    String? businessType,
+  }) async {
     final credential = await _auth.createUserWithEmailAndPassword(
-  email: email,
-  password: password,
-);
+      email: email,
+      password: password,
+    );
 
-final user = credential.user;
+    final user = credential.user;
 
-if (user == null) {
-  throw Exception("User creation failed");
-}
+    if (user == null) {
+      throw Exception("User creation failed");
+    }
 
-await user.updateDisplayName(fullName);
+    await user.updateDisplayName(fullName);
 
 
-await _firestore.collection('users').doc(user.uid).set({
-  'uid': user.uid,
-  'fullName': fullName,
-  'username': username,
-  'email': email,
-  'phone': phone,
-  'businessName': businessName,
-  'businessType': businessType,
-  'createdAt': FieldValue.serverTimestamp(),
-});
+    final Map<String, dynamic> userData = {
+      'uid': user.uid,
+      'fullName': fullName,
+      'username': username,
+      'email': email,
+      'phone': phone,
+      'createdAt': FieldValue.serverTimestamp(),
+    };
+
+    if (businessName != null && businessName.isNotEmpty) {
+      userData['businessName'] = businessName;
+    }
+
+    if (businessType != null && businessType.isNotEmpty) {
+      userData['businessType'] = businessType;
+    }
+
+    await _firestore.collection('users').doc(user.uid).set(userData);
   }
 
   @override
-Future<void> signInWithGoogle() async {
-  final GoogleSignIn signIn = GoogleSignIn.instance;
+  Future<void> signInWithGoogle() async {
+    final GoogleSignIn signIn = GoogleSignIn.instance;
 
-  await signIn.initialize();
+    await signIn.initialize();
 
-  final GoogleSignInAccount googleUser = await signIn.authenticate();
+    final GoogleSignInAccount googleUser = await signIn.authenticate();
 
-  final GoogleSignInAuthentication googleAuth =
-      googleUser.authentication;
+    final GoogleSignInAuthentication googleAuth =
+        googleUser.authentication;
 
-  final credential = GoogleAuthProvider.credential(
-    idToken: googleAuth.idToken,
-  );
+    final credential = GoogleAuthProvider.credential(
+      idToken: googleAuth.idToken,
+    );
 
-  await _auth.signInWithCredential(credential);
-}
+    await _auth.signInWithCredential(credential);
+  }
 }

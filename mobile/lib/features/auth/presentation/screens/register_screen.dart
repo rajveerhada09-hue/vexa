@@ -25,37 +25,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _businessNameController = TextEditingController();
   final _phoneController = TextEditingController();
 
-  String? _selectedBusinessType;
   bool _obscurePassword = true;
   bool _isLoading = false;
-  
 
-
-  static const List<String> _businessTypes = [
-    'Restaurant / Cafe',
-    'Salon / Spa',
-    'Clinic / Healthcare',
-    'Retail Store',
-    'Real Estate',
-    'Professional Services',
-    'Agency / Consulting',
-    'E-commerce',
-    'Education / Training',
-    'Fitness / Gym',
-    'Entertainment / Events',
-    'Hospitality / Travel',
-    'Interior Design / Architecture',
-    'Automotive / Car Dealership',
-    'Coaching / Personal Development',
-    'Non-profit / Charity',
-    'Other',
-
-  ];
-
-  
   @override
   void initState() {
     super.initState();
@@ -75,120 +49,106 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
-    _businessNameController.dispose();
     _phoneController.dispose();
     super.dispose();
   }
 
   Future<void> _onCreateAccount() async {
-  if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) return;
 
+    try {
+      setState(() => _isLoading = true);
 
+      await _authService.registerWithEmail(
+        fullName: _fullNameController.text.trim(),
+        username: _usernameController.text.trim(),
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+        phone: _phoneController.text.trim(),
+      );
 
-if (_selectedBusinessType == null) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(
-      content: Text('Please select a business type'),
-    ),
-  );
-  return;
-}
+      if (!mounted) return;
 
-  try {
-    setState(() => _isLoading = true);
+      await context.read<UserProvider>().loadCurrentUser();
 
-    await _authService.registerWithEmail(
-  fullName: _fullNameController.text.trim(),
-  username: _usernameController.text.trim(),
-  email: _emailController.text.trim(),
-  password: _passwordController.text.trim(),
-  phone: _phoneController.text.trim(),
-  businessName: _businessNameController.text.trim(),
-  businessType: _selectedBusinessType!,
-);
+      if (!mounted) return;
 
-    if (!mounted) return;
+      setState(() => _isLoading = false);
 
-    await context.read<UserProvider>().loadCurrentUser();
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => const AiPersonalityScreen(),
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
 
-    if (!mounted) return;
+      setState(() => _isLoading = false);
 
-    setState(() => _isLoading = false);
+      String message;
 
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => const AiPersonalityScreen(),
-      ),
-    );
-  } on FirebaseAuthException catch (e) {
-  if (!mounted) return;
+      switch (e.code) {
+        case 'email-already-in-use':
+          message = 'This email is already registered.';
+          break;
 
-  setState(() => _isLoading = false);
+        case 'invalid-email':
+          message = 'Please enter a valid email.';
+          break;
 
-  String message;
+        case 'weak-password':
+          message = 'Password must be at least 6 characters.';
+          break;
 
-  switch (e.code) {
-    case 'email-already-in-use':
-      message = 'This email is already registered.';
-      break;
+        case 'network-request-failed':
+          message = 'No internet connection.';
+          break;
 
-    case 'invalid-email':
-      message = 'Please enter a valid email.';
-      break;
+        case 'too-many-requests':
+          message = 'Too many attempts. Please try again later.';
+          break;
 
-    case 'weak-password':
-      message = 'Password must be at least 6 characters.';
-      break;
+        default:
+          message = e.message ?? 'Account creation failed.';
+      }
 
-    case 'network-request-failed':
-      message = 'No internet connection.';
-      break;
-
-    case 'too-many-requests':
-      message = 'Too many attempts. Please try again later.';
-      break;
-
-    default:
-      message = e.message ?? 'Account creation failed.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
   }
 
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text(message)),
-  );
-}
-}
-
   Future<void> _onGoogleSignUp() async {
-  try {
-    setState(() => _isLoading = true);
+    try {
+      setState(() => _isLoading = true);
 
-    await _authService.signInWithGoogle();
+      await _authService.signInWithGoogle();
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    setState(() => _isLoading = false);
+      setState(() => _isLoading = false);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Google Sign Up Successful"),
-      ),
-    );
-  } on FirebaseAuthException catch (e) {
-  if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Google Sign Up Successful'),
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
 
-  setState(() => _isLoading = false);
+      setState(() => _isLoading = false);
 
-  final message = e.message ?? 'Google Sign-In failed.';
+      final message = e.message ?? 'Google Sign-In failed.';
 
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text(message)),
-  );
-}
-}
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
+  }
 
   void _goToLogin() {
-  Navigator.pop(context);
-}
+    Navigator.pop(context);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -197,7 +157,7 @@ if (_selectedBusinessType == null) {
       body: SafeArea(
         child: Column(
           children: [
-            // ── Header ─────────────────────────────────────────────
+            // Header
             Padding(
               padding: const EdgeInsets.fromLTRB(8, 8, 16, 0),
               child: Row(
@@ -343,73 +303,10 @@ if (_selectedBusinessType == null) {
 
                       const SizedBox(height: 20),
 
-                      // Business Name
-                      AppTextField(
-                        controller: _businessNameController,
-                        label: 'Business Name',
-                        hint: 'Acme Inc.',
-                        prefixIcon: Icons.storefront_outlined,
-                        textInputAction: TextInputAction.next,
-                        validator: (v) {
-                          if (v == null || v.trim().isEmpty) {
-                            return 'Business name is required';
-                          }
-                          return null;
-                        },
-                      ),
-
-                      const SizedBox(height: 20),
-
-                  PhoneNumberField(
-                    controller: _phoneController,
-                    initialCountryCode: 'IN',
-                  ),
-
-                      // Business Type
-                      const Text(
-                        'Business Type',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.1,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      DropdownButtonFormField<String>(
-                        initialValue: _selectedBusinessType,
-                        decoration: const InputDecoration(
-                          hintText: 'Select business type',
-                          prefixIcon: Icon(
-                            Icons.category_outlined,
-                            size: 20,
-                            color: AppColors.iconSecondary,
-                          ),
-                        ),
-                        dropdownColor: AppColors.surfaceElevated,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          color: AppColors.textPrimary,
-                        ),
-                        icon: const Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          color: AppColors.iconSecondary,
-                        ),
-                        items: _businessTypes
-                            .map(
-                              (type) => DropdownMenuItem(
-                                value: type,
-                                child: Text(type),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          setState(() => _selectedBusinessType = value);
-                        },
-                        validator: (v) {
-                          if (v == null) return 'Please select a business type';
-                          return null;
-                        },
+                      // Phone
+                      PhoneNumberField(
+                        controller: _phoneController,
+                        initialCountryCode: 'IN',
                       ),
 
                       const SizedBox(height: 32),
@@ -476,7 +373,7 @@ if (_selectedBusinessType == null) {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              // Simple Google "G" mark (replace with asset later)
+                              // Simple Google 'G' mark (replace with asset later)
                               Container(
                                 width: 20,
                                 height: 20,

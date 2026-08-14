@@ -11,7 +11,12 @@ env/
 *.log
 
 # Environment
+
 .env
+.env.*
+!.env.example
+secrets/
+*.json
 
 # Flutter
 mobile/build/

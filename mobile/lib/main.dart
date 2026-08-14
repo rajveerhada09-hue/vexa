@@ -5,6 +5,10 @@ import 'package:provider/provider.dart';
 
 import 'firebase_options.dart';
 import 'features/onboarding/ai_personality_screen.dart';
+import 'features/onboarding/voice_selection_screen.dart';
+import 'features/onboarding/business_info_screen.dart';
+import 'features/onboarding/greeting_template_screen.dart';
+import 'features/onboarding/knowledge_base_screen.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/ai/presentation/screens/home_screen.dart';
 
@@ -142,11 +146,31 @@ void initState() {
     }
 
     // Onboarding is not finished.
-if (!user.onboardingComplete) {
-  return const AiPersonalityScreen();
-}
+    if (!user.onboardingComplete) {
+      // Route to the correct onboarding screen based on step.
+      if (user.onboardingStep >= 8) {
+        return const KnowledgeBaseScreen();
+      }
+      if (user.onboardingStep >= 7) {
+        return const GreetingTemplateScreen();
+      }
+      if (user.onboardingStep >= 6) {
+        return const VoiceSelectionScreen();
+      }
+      if (user.onboardingStep >= 5) {
+        return const BusinessInfoScreen();
+      }
+      if (user.onboardingStep >= 4) {
+        return const AiPersonalityScreen();
+      }
+      if (user.onboardingStep >= 3) {
+        return const AiPersonalityScreen();
+      }
+      // Fallback for any earlier step.
+      return const AiPersonalityScreen();
+    }
 
-// Onboarding is complete.
-return const HomeScreen();
+    // Onboarding is complete.
+    return const HomeScreen();
   }
 }

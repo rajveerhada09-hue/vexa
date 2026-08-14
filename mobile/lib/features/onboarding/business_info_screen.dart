@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 
 import 'ai_personality_screen.dart';
+import 'language_selection_screen.dart';
 import '../user/providers/user_provider.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/data/time_zones.dart';
 
 class BusinessInfoScreen extends StatefulWidget {
   const BusinessInfoScreen({super.key});
@@ -16,7 +19,12 @@ class _BusinessInfoScreenState extends State<BusinessInfoScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _businessNameController = TextEditingController();
   String? _selectedBusinessType;
+  TimeOfDay? _openingTime = const TimeOfDay(hour: 9, minute: 0);
+  TimeOfDay? _closingTime = const TimeOfDay(hour: 18, minute: 0);
+  String? _selectedTimeZone;
   bool _isLoading = false;
+  bool _loadingTimeZones = true;
+  List<TimeZoneOption> _availableTimeZones = [];
 
   static const Color background = Color(0xFF09090B);
   static const Color card = Color(0xFF151518);
@@ -48,7 +56,41 @@ class _BusinessInfoScreenState extends State<BusinessInfoScreen> {
   void initState() {
     super.initState();
     _businessNameController.addListener(() => setState(() {}));
+    _loadTimeZones();
   }
+
+  Future<void> _loadTimeZones() async {
+  _availableTimeZones = timeZoneOptions;
+
+  String? detectedZone;
+
+  try {
+    final timezoneInfo = await FlutterTimezone.getLocalTimezone();
+    detectedZone = timezoneInfo.identifier;
+  } catch (_) {
+    detectedZone = null;
+  }
+
+  final fallbackIndex = _availableTimeZones.indexWhere(
+    (z) => z.ianaId == 'Asia/Kolkata',
+  );
+
+  final detectedIndex = detectedZone != null
+      ? _availableTimeZones.indexWhere(
+          (z) => z.ianaId == detectedZone,
+        )
+      : -1;
+
+  if (mounted) {
+    setState(() {
+      _selectedTimeZone = _availableTimeZones[
+      detectedIndex >= 0 ? detectedIndex : fallbackIndex
+    ].ianaId;
+
+      _loadingTimeZones = false;
+    });
+  }
+}
 
   @override
   void dispose() {
@@ -58,7 +100,82 @@ class _BusinessInfoScreenState extends State<BusinessInfoScreen> {
 
   bool get _canContinue {
     return _selectedBusinessType != null &&
-        _businessNameController.text.trim().isNotEmpty;
+        _businessNameController.text.trim().isNotEmpty &&
+        _openingTime != null &&
+        _closingTime != null &&
+        _selectedTimeZone != null &&
+        _isClosingAfterOpening();
+  }
+
+  bool _isClosingAfterOpening() {
+    if (_openingTime == null || _closingTime == null) return false;
+    final openMin = _openingTime!.hour * 60 + _openingTime!.minute;
+    final closeMin = _closingTime!.hour * 60 + _closingTime!.minute;
+    return closeMin > openMin;
+  }
+
+  String _formatTimeOfDay(TimeOfDay t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  String _formatTimeForDisplay(TimeOfDay t) {
+    final hour = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
+    final minute = t.minute.toString().padLeft(2, '0');
+    final period = t.period == DayPeriod.am ? 'AM' : 'PM';
+    return '$hour:$minute $period';
+  }
+
+  Future<void> _pickOpeningTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _openingTime ?? const TimeOfDay(hour: 9, minute: 0),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            timePickerTheme: TimePickerThemeData(
+              backgroundColor: card,
+              hourMinuteTextColor: textPrimary,
+              hourMinuteColor: background,
+              dayPeriodTextColor: textPrimary,
+              dayPeriodColor: background,
+              dialHandColor: primary,
+              dialBackgroundColor: background,
+              entryModeIconColor: primary,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && mounted) {
+      setState(() => _openingTime = picked);
+    }
+  }
+
+  Future<void> _pickClosingTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _closingTime ?? const TimeOfDay(hour: 18, minute: 0),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            timePickerTheme: TimePickerThemeData(
+              backgroundColor: card,
+              hourMinuteTextColor: textPrimary,
+              hourMinuteColor: background,
+              dayPeriodTextColor: textPrimary,
+              dayPeriodColor: background,
+              dialHandColor: primary,
+              dialBackgroundColor: background,
+              entryModeIconColor: primary,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && mounted) {
+      setState(() => _closingTime = picked);
+    }
   }
 
   Future<void> _continue() async {
@@ -71,6 +188,9 @@ class _BusinessInfoScreenState extends State<BusinessInfoScreen> {
     final success = await userProvider.saveBusinessInfo(
       businessName: _businessNameController.text.trim(),
       businessType: _selectedBusinessType!,
+      businessOpeningTime: _formatTimeOfDay(_openingTime!),
+      businessClosingTime: _formatTimeOfDay(_closingTime!),
+      businessTimeZone: _selectedTimeZone!,
     );
 
     if (!mounted) return;
@@ -88,10 +208,10 @@ class _BusinessInfoScreenState extends State<BusinessInfoScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Business info saved! Screen 4 coming soon.'),
-      ),
+    if (!mounted) return;
+
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const LanguageSelectionScreen()),
     );
   }
 
@@ -117,6 +237,10 @@ class _BusinessInfoScreenState extends State<BusinessInfoScreen> {
                       _buildBusinessNameField(),
                       const SizedBox(height: 20),
                       _buildBusinessTypeField(),
+                      const SizedBox(height: 20),
+                      _buildBusinessHoursField(),
+                      const SizedBox(height: 20),
+                      _buildTimeZoneField(),
                       const SizedBox(height: 24),
                     ],
                   ),
@@ -312,6 +436,282 @@ class _BusinessInfoScreenState extends State<BusinessInfoScreen> {
           },
           validator: (v) {
             if (v == null || v.isEmpty) return 'Please select a business type';
+            return null;
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBusinessHoursField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Business Hours',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.1,
+            color: textSecondary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            // Opening Time
+            Expanded(
+              child: GestureDetector(
+                onTap: _pickOpeningTime,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  decoration: BoxDecoration(
+                    color: card,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.055),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.access_time_rounded,
+                        size: 20,
+                        color: textSecondary,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Opening',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              _openingTime != null
+                                  ? _formatTimeForDisplay(_openingTime!)
+                                  : '--:--',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w400,
+                                color: textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: textSecondary,
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            // "to" label
+            Text(
+              'to',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: textSecondary,
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Closing Time
+            Expanded(
+              child: GestureDetector(
+                onTap: _pickClosingTime,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  decoration: BoxDecoration(
+                    color: card,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.055),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.access_time_rounded,
+                        size: 20,
+                        color: textSecondary,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Closing',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              _closingTime != null
+                                  ? _formatTimeForDisplay(_closingTime!)
+                                  : '--:--',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w400,
+                                color: textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: textSecondary,
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (!_isClosingAfterOpening() && _openingTime != null && _closingTime != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              'Closing time must be after opening time',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.redAccent,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildTimeZoneField() {
+    if (_loadingTimeZones) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Business Time Zone',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.1,
+              color: textSecondary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: BoxDecoration(
+              color: card,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.055),
+              ),
+            ),
+            child: Row(
+              children: [
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Loading time zones...',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Business Time Zone',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.1,
+            color: textSecondary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          initialValue: _selectedTimeZone,
+          decoration: InputDecoration(
+            hintText: 'Select time zone',
+            prefixIcon: const Icon(
+              Icons.language_outlined,
+              size: 20,
+              color: textSecondary,
+            ),
+            filled: true,
+            fillColor: card,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: Colors.white.withOpacity(0.055)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: primary, width: 1.2),
+            ),
+            hintStyle: TextStyle(
+              color: textSecondary.withOpacity(0.55),
+              fontSize: 15,
+            ),
+          ),
+          dropdownColor: card,
+          style: const TextStyle(
+            fontSize: 15,
+            color: textPrimary,
+          ),
+          icon: const Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: textSecondary,
+          ),
+          isExpanded: true,
+          items: _availableTimeZones
+              .map(
+                (tz) => DropdownMenuItem<String>(
+                  value: tz.ianaId,
+                  child: Text(tz.displayName),
+                ),
+              )
+              .toList(),
+          onChanged: (value) {
+            setState(() => _selectedTimeZone = value);
+          },
+          validator: (v) {
+            if (v == null || v.isEmpty) return 'Please select a time zone';
             return null;
           },
         ),
