@@ -63,9 +63,12 @@ class UserRepository {
   }
 
   /// Fetches the currently authenticated user.
-  Future<UserModel?> getCurrentUser() async {
+  /// If [user] is provided, uses that user instead of reading from FirebaseAuth.currentUser.
+  /// This avoids a race condition where authStateChanges has emitted a user
+  /// but FirebaseAuth.instance.currentUser hasn't propagated yet.
+  Future<UserModel?> getCurrentUser({User? user}) async {
     try {
-      final User? currentUser = _auth.currentUser;
+      final User? currentUser = user ?? _auth.currentUser;
 
       if (currentUser == null) {
         return null;

@@ -9,7 +9,7 @@ import '../../core/theme/app_colors.dart';
 /// - Pure black background
 /// - Logo fades in over ~1.2s
 /// - "Powered by Avento" appears slightly after
-/// - Total duration 2.0s then navigates to onboarding
+/// - Animation plays once, then router handles navigation after auth is ready
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -63,29 +63,6 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     _controller.forward();
-
-    // Navigate after full 2 seconds
-    _controller.addStatusListener((status) {
-      if (status == AnimationStatus.completed && mounted) {
-        // Replace with your actual onboarding route
-        // Example with named routes:
-        // Navigator.of(context).pushReplacementNamed('/onboarding');
-        //
-        // Or with go_router:
-        // context.go('/onboarding');
-        //
-        // Temporary placeholder until routes are wired:
-        Navigator.of(context).pushReplacement(
-          PageRouteBuilder(
-            pageBuilder: (_, _, _) => const _OnboardingPlaceholder(),
-            transitionsBuilder: (_, animation, _, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
-            transitionDuration: const Duration(milliseconds: 400),
-          ),
-        );
-      }
-    });
   }
 
   @override
@@ -185,26 +162,6 @@ class _VexaLogo extends StatelessWidget {
               ),
         ),
       ],
-    );
-  }
-}
-
-/// Temporary placeholder so the splash can navigate.
-/// Delete this class once real onboarding screen exists.
-class _OnboardingPlaceholder extends StatelessWidget {
-  const _OnboardingPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: AppColors.background,
-      body: Center(
-        child: Text(
-          'Onboarding Screen\n(replace this)',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: AppColors.textSecondary),
-        ),
-      ),
     );
   }
 }

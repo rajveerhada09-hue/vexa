@@ -1,5 +1,6 @@
 import 'dart:developer' as developer;
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
 
@@ -10,12 +11,20 @@ import '../model/knowledge_document_model.dart'
 import '../model/faq_model.dart';
 import '../repository/user_repository.dart';
 
+enum UserProviderErrorType {
+  none,
+  permissionDenied,
+  notFound,
+  other,
+}
+
 class UserProvider extends ChangeNotifier {
   final UserRepository _userRepository;
 
   UserModel? _currentUser;
   bool _isLoading = false;
   String? _error;
+  UserProviderErrorType _errorType = UserProviderErrorType.none;
 
   UserProvider({UserRepository? userRepository})
       : _userRepository = userRepository ?? UserRepository();
@@ -23,17 +32,22 @@ class UserProvider extends ChangeNotifier {
   UserModel? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  UserProviderErrorType get errorType => _errorType;
 
   /// Loads the currently authenticated user's Firestore data.
-  Future<void> loadCurrentUser() async {
+  /// If [user] is provided, uses that user instead of reading from FirebaseAuth.currentUser.
+  /// This avoids a race condition where authStateChanges has emitted a user
+  /// but FirebaseAuth.instance.currentUser hasn't propagated yet.
+  Future<void> loadCurrentUser({User? user}) async {
     if (_isLoading) return;
 
     _isLoading = true;
     _error = null;
+    _errorType = UserProviderErrorType.none;
     notifyListeners();
 
     try {
-      _currentUser = await _userRepository.getCurrentUser();
+      _currentUser = await _userRepository.getCurrentUser(user: user);
     } catch (e, stackTrace) {
       developer.log(
         'Error loading current user',
@@ -41,7 +55,20 @@ class UserProvider extends ChangeNotifier {
         stackTrace: stackTrace,
       );
 
+      final errorString = e.toString();
       _error = _formatErrorMessage(e);
+
+      if (errorString.contains('PERMISSION_DENIED') ||
+          errorString.contains('permission-denied') ||
+          errorString.contains('Missing or insufficient permissions')) {
+        _errorType = UserProviderErrorType.permissionDenied;
+      } else if (errorString.contains('NOT_FOUND') ||
+          errorString.contains('not-found') ||
+          errorString.contains('document does not exist')) {
+        _errorType = UserProviderErrorType.notFound;
+      } else {
+        _errorType = UserProviderErrorType.other;
+      }
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -911,10 +938,11 @@ class UserProvider extends ChangeNotifier {
 
   /// Clears current user data on logout.
   void clearUserData() {
-    if (_currentUser == null && _error == null) return;
+    if (_currentUser == null && _error == null && _errorType == UserProviderErrorType.none) return;
 
     _currentUser = null;
     _error = null;
+    _errorType = UserProviderErrorType.none;
     notifyListeners();
   }
 

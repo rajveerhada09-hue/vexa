@@ -19,6 +19,8 @@ abstract class AuthService {
   });
 
   Future<void> signInWithGoogle();
+
+  Future<void> signOut();
 }
 
 class AuthServiceImpl implements AuthService {
@@ -27,7 +29,7 @@ class AuthServiceImpl implements AuthService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
 
-  @override
+@override
   Future<void> signInWithEmail({
     required String email,
     required String password,
@@ -36,6 +38,23 @@ class AuthServiceImpl implements AuthService {
       email: email,
       password: password,
     );
+
+    // Ensure user profile exists in Firestore (safety net)
+    final user = _auth.currentUser;
+    if (user != null) {
+      final userDoc = await _firestore.collection('users').doc(user.uid).get();
+      if (!userDoc.exists) {
+        final Map<String, dynamic> userData = {
+          'uid': user.uid,
+          'fullName': user.displayName ?? 'User',
+          'username': user.email?.split('@').first ?? 'user',
+          'email': user.email ?? '',
+          'phone': user.phoneNumber,
+          'createdAt': FieldValue.serverTimestamp(),
+        };
+        await _firestore.collection('users').doc(user.uid).set(userData);
+      }
+    }
   }
 
   @override
@@ -82,7 +101,7 @@ class AuthServiceImpl implements AuthService {
     await _firestore.collection('users').doc(user.uid).set(userData);
   }
 
-  @override
+@override
   Future<void> signInWithGoogle() async {
     final GoogleSignIn signIn = GoogleSignIn.instance;
 
@@ -97,6 +116,28 @@ class AuthServiceImpl implements AuthService {
       idToken: googleAuth.idToken,
     );
 
-    await _auth.signInWithCredential(credential);
+    final userCredential = await _auth.signInWithCredential(credential);
+    final user = userCredential.user;
+
+    if (user != null) {
+      // Ensure user profile exists in Firestore
+      final userDoc = await _firestore.collection('users').doc(user.uid).get();
+      if (!userDoc.exists) {
+        final Map<String, dynamic> userData = {
+          'uid': user.uid,
+          'fullName': user.displayName ?? 'User',
+          'username': user.email?.split('@').first ?? 'user',
+          'email': user.email ?? '',
+          'phone': user.phoneNumber,
+          'createdAt': FieldValue.serverTimestamp(),
+        };
+        await _firestore.collection('users').doc(user.uid).set(userData);
+      }
+    }
+  }
+
+  @override
+  Future<void> signOut() async {
+    await _auth.signOut();
   }
 }
